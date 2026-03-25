@@ -216,7 +216,9 @@
 
         fetch(API_URL, {
             method: 'POST',
-            body: JSON.stringify(payload)
+            mode: 'cors', // เพิ่มโหมด cors
+            body: JSON.stringify(payload),
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' } // ส่งเป็น Text เพื่อเลี่ยง Preflight
         })
         .then(res => res.json())
         .then(res => {
@@ -224,14 +226,16 @@
             if(res.success) {
                 localStorage.setItem('currentUser', JSON.stringify(res.data));
                 showAlert('สำเร็จ!', 'ยินดีต้อนรับคุณ ' + res.data.UserName, 'success');
-                // Redirect ไปหน้าถัดไปที่นี่
+                // หากต้องการให้เด้งไปหน้าอื่นหลัง Login สำเร็จ ให้ใส่ URL ตรงนี้
+                // setTimeout(() => { window.location.href = 'https://system-a.github.io'; }, 2000);
             } else {
                 showAlert('ขออภัย', res.message, 'error');
             }
         })
         .catch(err => {
             loading.style.display = 'none';
-            showAlert('ผิดพลาด', 'ไม่สามารถเชื่อมต่อฐานข้อมูลได้', 'error');
+            console.error("Error:", err);
+            showAlert('ผิดพลาด', 'ไม่สามารถเชื่อมต่อฐานข้อมูลได้ (โปรดตรวจสอบการ Deploy)', 'error');
         });
     });
 
