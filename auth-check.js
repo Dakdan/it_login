@@ -2,11 +2,15 @@
  * auth-check.js
  * ใช้วางบนทุกหน้าที่ต้องดึงข้อมูลสิทธิ์และผู้ใช้งานจาก LocalStorage
  */
+/**
+ * auth-check.js
+ * ใช้วางบนหน้าเมนูหลักเพื่อตรวจสอบและดึงโปรไฟล์ผู้ใช้งานจาก LocalStorage
+ */
 (function () {
     try {
         const userData = localStorage.getItem('currentUser');
         if (!userData) {
-            window.user = null;
+            window.user = null; // ปรับไม่ให้เด้งหนี เพื่อส่งค่าไปเปลี่ยนสลับปุ่มล็อกอินที่หน้าหลักแทน
             return;
         }
 
@@ -17,9 +21,10 @@
             return;
         }
 
+        // ผูก Object ผู้ใช้งานเข้ากับ Global Window สำหรับการดึงใช้งานในหน้าเพจ
         window.user = user;
     } catch (err) {
-        console.error(err);
+        console.error("Auth-Check error: ", err);
         localStorage.removeItem('currentUser');
         window.user = null;
     }
@@ -35,14 +40,13 @@ function hasRole(role) {
 }
 
 function getDisplayName() {
-    if (!window.user) return "";
+    if (!window.user) return "ผู้ใช้งานทั่วไป";
     return (window.user.UserName || "") + " " + (window.user.UserSname || "");
 }
 
 function logout() {
     localStorage.removeItem('currentUser');
     sessionStorage.clear();
-    // ปรับให้สอดคล้องกับการใช้งานในสภาพแวดล้ม Google Apps Script / Web Server
     try {
         window.location.replace("index.html");
     } catch(e) {
