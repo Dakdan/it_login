@@ -813,41 +813,32 @@
         }
 
         // วาดส่วนแจ้งเตือน และยิง Notification บนจอมือถืออัตโนมัติหากมีข้อความเข้ามาใหม่
-        function renderAlerts(alerts) {
+      function renderAlerts(alerts) {
             const container = document.getElementById('alertsContainer');
-            // ล้างพื้นที่แจ้งเตือนออกหากไม่มีข้อความแล้ว เพื่อไม่ให้บั๊กค้างบนหน้าจอ
             if (!alerts || alerts.length === 0) {
                 container.innerHTML = '';
                 return;
             }
 
             let html = '';
-            alerts.forEach(alertItem => {
-                const type = alertItem.ALERT_TYPE_ID || alertItem.type || 'แจ้งเตือนระบบ';
-                const text = alertItem.ALERT_TEXT || alertItem.text || '';
-                
-                // +++ ส่วนที่เพิ่มเข้ามาใหม่: ดึงเวลาแจ้งเตือนจาก Sheet มาแสดงด้วย เพื่อยืนยันว่าข้อมูลมีการอัปเดตจริง +++
-                const timeHtml = alertItem.ALERT_TIME_START ? `<div class="mt-1 opacity-75" style="font-size: 0.7rem;"><i class="fa-regular fa-clock me-1"></i>${new Date(alertItem.ALERT_TIME_START).toLocaleString('th-TH')}</div>` : '';
-                
-                html += `
-                    <div class="alert-banner mb-2">
-                        <i class="fa-solid fa-circle-exclamation fs-4 me-3"></i>
-                        <div>
-                            <div class="fw-bold" style="font-size: 0.95rem;">${type}</div>
-                            <div class="small" style="font-size: 0.8rem;">${text}</div>
-                            ${timeHtml}
-                        </div>
-                    </div>
-                `;
+            const activeUser = typeof getCurrentUser === 'function' ? getCurrentUser() : null;
 
-                // คีย์เฉพาะในการบล็อกการส่งซ้ำเพื่อป้องกันส่ง Push แจ้งเตือนสแปมเข้าหน้าจอลูกค้าถ้าระบบวนลูปดึงข้อมูลมาอีกรอบ
-                const alertKey = type + "_" + text;
-                if (!sentNotificationsSet.has(alertKey)) {
-                    sentNotificationsSet.add(alertKey);
-                    
-                    // ยิงแจ้งเตือนเด้งเข้ามือถือ พร้อมสั่นสั้นๆ เรียกร้องสายตาเจ้าหน้าที่
-                    triggerDeviceVibration();
-                    sendMobileSystemAlert(type, text);
+            alerts.forEach(alertItem => {
+                // ยึดตามชื่อคอลัมน์เดิมใน Sheet: ALERT_TYPE_ID, ALERT_TEXT, USER_ID, ALERT_TIME_START
+                const type = alertItem.ALERT_TYPE_ID || 'แจ้งเตือน';
+                const text = alertItem.ALERT_TEXT || '';
+                const uid = String(alertItem.USER_ID || '');
+                const time = alertItem.ALERT_TIME_START;
+
+                // กรองสิทธิ์ผู้ใช้งานตามเดิม
+                if (uid === "" || (activeUser && uid === String(activeUser.UserPN))) {
+                    html += `
+                        <div class="alert-banner mb-2">
+                            <i class="fa-solid fa-circle-exclamation me-2"></i>
+                            <strong>${type}:</strong> ${text}
+                            <div class="small opacity-75">${time ? new Date(time).toLocaleString('th-TH') : ''}</div>
+                        </div>
+                    `;
                 }
             });
             container.innerHTML = html;
