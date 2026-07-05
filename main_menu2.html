@@ -812,55 +812,56 @@
             }
         }
 
-        // วาดส่วนแจ้งเตือน และยิง Notification บนจอมือถืออัตโนมัติหากมีข้อความเข้ามาใหม่
-      function renderAlerts(alerts) {
-    const container = document.getElementById('alertsContainer');
-    const activeUser = typeof getCurrentUser === 'function' ? getCurrentUser() : null;
-    
-    // Debug ดูว่า activeUser มีค่าไหม
-    console.log("Current Active User:", activeUser);
+       // วาดส่วนแจ้งเตือน และยิง Notification บนจอมือถืออัตโนมัติหากมีข้อความเข้ามาใหม่
+        function renderAlerts(alerts) {
+            const container = document.getElementById('alertsContainer');
+            const activeUser = typeof getCurrentUser === 'function' ? getCurrentUser() : null;
 
-    if (!alerts || alerts.length === 0) {
-        container.innerHTML = '';
-        return;
-    }
+            // เคลียร์ Container ก่อนเริ่มวาดใหม่
+            container.innerHTML = '';
 
-    let html = '';
-    alerts.forEach(alertItem => {
-        // ดึงค่า USER_ID และแสดงออกมาใน Console ให้เห็นชัดๆ
-        const uid = String(alertItem.USER_ID || '').trim();
-        const type = alertItem.ALERT_TYPE_ID || 'แจ้งเตือน';
-        const text = alertItem.ALERT_TEXT || '';
-        const time = alertItem.ALERT_TIME_START;
-        
-        console.log("Checking Alert - Text:", text, "| Alert's UID:", uid, "| Logged in UserPN:", activeUser ? activeUser.UserPN : "None");
+            if (!alerts || alerts.length === 0) {
+                return;
+            }
 
-        // เงื่อนไขการกรอง
-        // เพิ่ม .trim() เผื่อกรณีข้อมูลใน Sheet มีช่องว่างติดมา
-        const isPublic = (uid === ""); 
-        const isMine = (activeUser && uid === String(activeUser.UserPN).trim());
+            let html = '';
+            alerts.forEach(alertItem => {
+                // ดึงค่า USER_ID จากฐานข้อมูล (ต้องตรงกับคอลัมน์ใน Sheet)
+                // ใช้ .trim() เพื่อป้องกันปัญหาช่องว่างที่มองไม่เห็น
+                const uid = String(alertItem.USER_ID || '').trim();
+                const type = alertItem.ALERT_TYPE_ID || 'แจ้งเตือน';
+                const text = alertItem.ALERT_TEXT || '';
+                const time = alertItem.ALERT_TIME_START;
 
-        if (isPublic || isMine) {
-            html += `
-                <div class="alert-banner mb-2">
-                    <i class="fa-solid fa-circle-exclamation me-2"></i>
-                    <div>
-                        <strong>${type}:</strong> ${text}
-                        <div class="small opacity-75">${time ? new Date(time).toLocaleString('th-TH') : ''}</div>
-                    </div>
-                </div>
-            `;
+                // Debug เพื่อเช็คค่าก่อนเทียบ
+                console.log("Checking Alert:", text, "| Alert UID:", uid, "| My USERID:", activeUser ? activeUser.USERID : "None");
+
+                // เงื่อนไขการแสดงผล:
+                // 1. ถ้า uid เป็นค่าว่าง ถือว่าเป็น "แจ้งเตือนสาธารณะ" (Global) ให้ทุกคนเห็น
+                // 2. ถ้า uid ตรงกับ activeUser.USERID (206ef856) ให้แสดงเฉพาะคนนี้
+                const isPublic = (uid === "");
+                const isMine = (activeUser && uid === String(activeUser.USERID).trim());
+
+                if (isPublic || isMine) {
+                    html += `
+                        <div class="alert-banner mb-2">
+                            <i class="fa-solid fa-circle-exclamation me-2"></i>
+                            <div>
+                                <strong>${type}:</strong> ${text}
+                                <div class="small opacity-75">${time ? new Date(time).toLocaleString('th-TH') : ''}</div>
+                            </div>
+                        </div>
+                    `;
+                }
+            });
+            
+            container.innerHTML = html;
+
+            // ถ้ามีการแจ้งเตือนเข้ามา แต่กรองแล้วไม่เหลือสำหรับผู้ใช้นี้เลย
+            if (html === '' && alerts.length > 0) {
+                console.log("Alerts found but none match the current user.");
+            }
         }
-    });
-    
-    container.innerHTML = html;
-    
-    // ถ้า html ยังว่างอยู่ ให้แสดงข้อความแจ้งเตือนใน UI จะได้รู้ว่ามันไม่ได้พัง แต่มันกรองออกหมด
-    if (html === '' && alerts.length > 0) {
-        container.innerHTML = `<div class="alert alert-info">มีแจ้งเตือน ${alerts.length} รายการ แต่ไม่มีรายการสำหรับคุณ (ตรวจสอบรหัส UserPN)</div>`;
-    }
-}
-
         // วาดส่วนจัดกลุ่มเมนูหลัก (รองรับ Object ที่จัดกลุ่มมาแล้วจาก code.gs)
         function renderMenus(menusObj, alertCount = 0) {
             const shortcutGrid = document.getElementById('shortcutGrid');
