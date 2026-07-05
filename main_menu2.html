@@ -814,35 +814,52 @@
 
         // วาดส่วนแจ้งเตือน และยิง Notification บนจอมือถืออัตโนมัติหากมีข้อความเข้ามาใหม่
       function renderAlerts(alerts) {
-            const container = document.getElementById('alertsContainer');
-            if (!alerts || alerts.length === 0) {
-                container.innerHTML = '';
-                return;
-            }
+    const container = document.getElementById('alertsContainer');
+    const activeUser = typeof getCurrentUser === 'function' ? getCurrentUser() : null;
+    
+    // Debug ดูว่า activeUser มีค่าไหม
+    console.log("Current Active User:", activeUser);
 
-            let html = '';
-            const activeUser = typeof getCurrentUser === 'function' ? getCurrentUser() : null;
+    if (!alerts || alerts.length === 0) {
+        container.innerHTML = '';
+        return;
+    }
 
-            alerts.forEach(alertItem => {
-                // ยึดตามชื่อคอลัมน์เดิมใน Sheet: ALERT_TYPE_ID, ALERT_TEXT, USER_ID, ALERT_TIME_START
-                const type = alertItem.ALERT_TYPE_ID || 'แจ้งเตือน';
-                const text = alertItem.ALERT_TEXT || '';
-                const uid = String(alertItem.USER_ID || '');
-                const time = alertItem.ALERT_TIME_START;
+    let html = '';
+    alerts.forEach(alertItem => {
+        // ดึงค่า USER_ID และแสดงออกมาใน Console ให้เห็นชัดๆ
+        const uid = String(alertItem.USER_ID || '').trim();
+        const type = alertItem.ALERT_TYPE_ID || 'แจ้งเตือน';
+        const text = alertItem.ALERT_TEXT || '';
+        const time = alertItem.ALERT_TIME_START;
+        
+        console.log("Checking Alert - Text:", text, "| Alert's UID:", uid, "| Logged in UserPN:", activeUser ? activeUser.UserPN : "None");
 
-                // กรองสิทธิ์ผู้ใช้งานตามเดิม
-                if (uid === "" || (activeUser && uid === String(activeUser.UserPN))) {
-                    html += `
-                        <div class="alert-banner mb-2">
-                            <i class="fa-solid fa-circle-exclamation me-2"></i>
-                            <strong>${type}:</strong> ${text}
-                            <div class="small opacity-75">${time ? new Date(time).toLocaleString('th-TH') : ''}</div>
-                        </div>
-                    `;
-                }
-            });
-            container.innerHTML = html;
+        // เงื่อนไขการกรอง
+        // เพิ่ม .trim() เผื่อกรณีข้อมูลใน Sheet มีช่องว่างติดมา
+        const isPublic = (uid === ""); 
+        const isMine = (activeUser && uid === String(activeUser.UserPN).trim());
+
+        if (isPublic || isMine) {
+            html += `
+                <div class="alert-banner mb-2">
+                    <i class="fa-solid fa-circle-exclamation me-2"></i>
+                    <div>
+                        <strong>${type}:</strong> ${text}
+                        <div class="small opacity-75">${time ? new Date(time).toLocaleString('th-TH') : ''}</div>
+                    </div>
+                </div>
+            `;
         }
+    });
+    
+    container.innerHTML = html;
+    
+    // ถ้า html ยังว่างอยู่ ให้แสดงข้อความแจ้งเตือนใน UI จะได้รู้ว่ามันไม่ได้พัง แต่มันกรองออกหมด
+    if (html === '' && alerts.length > 0) {
+        container.innerHTML = `<div class="alert alert-info">มีแจ้งเตือน ${alerts.length} รายการ แต่ไม่มีรายการสำหรับคุณ (ตรวจสอบรหัส UserPN)</div>`;
+    }
+}
 
         // วาดส่วนจัดกลุ่มเมนูหลัก (รองรับ Object ที่จัดกลุ่มมาแล้วจาก code.gs)
         function renderMenus(menusObj, alertCount = 0) {
