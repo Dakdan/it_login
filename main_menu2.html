@@ -799,18 +799,23 @@
                     }
 
                     if (result.menus) renderMenus(result.menus, myAlertCount); // ส่งตัวเลขเข้าไปวาดในการ์ดเมนูด้วย
+                } else {
+                    // +++ ส่วนที่เพิ่มเข้ามาใหม่: ดักจับ Error จากฝั่ง Apps Script (เช่น ไอดี Sheet ผิด) +++
+                    console.error("Backend API Error:", result.error);
+                    showSystemModal('เกิดข้อผิดพลาดจากฐานข้อมูล', 'ระบบหลังบ้านไม่สามารถดึงข้อมูลได้: ' + result.error, 'fa-solid fa-database text-danger');
                 }
             } catch (err) {
                 document.getElementById('loadingOverlay').style.display = 'none';
                 console.error("Fetch error:", err);
-                showSystemModal('เครือข่ายผิดพลาด', 'เกิดข้อผิดพลาดในการดึงข้อมูลเมนู กรุณาตรวจสอบสิทธิ์และการ Deploy เว็บแอป', 'fa-solid fa-wifi');
+                // ดักจับ Error กรณีที่ URL ของ Web App ผิด หรืออินเทอร์เน็ตหลุด
+                // showSystemModal('เครือข่ายผิดพลาด', 'เกิดข้อผิดพลาดในการดึงข้อมูลเมนู กรุณาตรวจสอบสิทธิ์และการ Deploy เว็บแอป', 'fa-solid fa-wifi');
             }
         }
 
         // วาดส่วนแจ้งเตือน และยิง Notification บนจอมือถืออัตโนมัติหากมีข้อความเข้ามาใหม่
         function renderAlerts(alerts) {
             const container = document.getElementById('alertsContainer');
-            // --- ส่วนที่ปรับปรุง: ล้างพื้นที่แจ้งเตือนออกหากไม่มีข้อความแล้ว เพื่อไม่ให้บั๊กค้างบนหน้าจอ ---
+            // ล้างพื้นที่แจ้งเตือนออกหากไม่มีข้อความแล้ว เพื่อไม่ให้บั๊กค้างบนหน้าจอ
             if (!alerts || alerts.length === 0) {
                 container.innerHTML = '';
                 return;
@@ -821,12 +826,16 @@
                 const type = alertItem.ALERT_TYPE_ID || alertItem.type || 'แจ้งเตือนระบบ';
                 const text = alertItem.ALERT_TEXT || alertItem.text || '';
                 
+                // +++ ส่วนที่เพิ่มเข้ามาใหม่: ดึงเวลาแจ้งเตือนจาก Sheet มาแสดงด้วย เพื่อยืนยันว่าข้อมูลมีการอัปเดตจริง +++
+                const timeHtml = alertItem.ALERT_TIME_START ? `<div class="mt-1 opacity-75" style="font-size: 0.7rem;"><i class="fa-regular fa-clock me-1"></i>${new Date(alertItem.ALERT_TIME_START).toLocaleString('th-TH')}</div>` : '';
+                
                 html += `
                     <div class="alert-banner mb-2">
                         <i class="fa-solid fa-circle-exclamation fs-4 me-3"></i>
                         <div>
                             <div class="fw-bold" style="font-size: 0.95rem;">${type}</div>
                             <div class="small" style="font-size: 0.8rem;">${text}</div>
+                            ${timeHtml}
                         </div>
                     </div>
                 `;
