@@ -410,16 +410,53 @@
                     ${fileStatusHtml}
                 `,
                 showCancelButton: true,
+                showDenyButton: true,
                 confirmButtonText: '✏️ แก้ไขข้อมูล',
+                denyButtonText: '🗑️ ลบข้อมูล',
                 cancelButtonText: 'ปิดหน้าต่าง',
                 confirmButtonColor: '#ec4899',
+                denyButtonColor: '#ef4444',
                 cancelButtonColor: '#9ca3af',
                 customClass: { popup: 'rounded-2xl' }
             }).then((result) => {
                 if (result.isConfirmed) {
                     prepareEdit(dep);
+                } else if (result.isDenied) {
+                    confirmDelete(dep.DEP_ID);
                 }
             });
+        }
+
+        async function confirmDelete(depId) {
+            const result = await Swal.fire({
+                title: 'ยืนยันการลบข้อมูล?',
+                text: "ข้อมูลนี้จะถูกลบออกจากฐานข้อมูลอย่างถาวร!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#ef4444',
+                cancelButtonColor: '#9ca3af',
+                confirmButtonText: 'ลบเลย!',
+                cancelButtonText: 'ยกเลิก'
+            });
+
+            if (result.isConfirmed) {
+                Swal.fire({ title: 'กำลังลบ...', allowOutsideClick: false, didOpen: () => { Swal.showLoading(); }});
+                try {
+                    const response = await fetch(API_URL, {
+                        method: 'POST',
+                        body: JSON.stringify({ action: 'deleteDepartment', payload: { DEP_ID: depId } })
+                    });
+                    const res = await response.json();
+                    if(res.status === 'success') {
+                        Swal.fire('สำเร็จ!', 'ลบข้อมูลเรียบร้อยแล้ว', 'success');
+                        await fetchDepartments(false);
+                    } else {
+                        throw new Error(res.message);
+                    }
+                } catch (e) {
+                    Swal.fire('ข้อผิดพลาด', e.message || 'ไม่สามารถลบข้อมูลได้', 'error');
+                }
+            }
         }
 
         function prepareEdit(dep) {
