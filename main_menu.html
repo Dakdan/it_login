@@ -553,31 +553,37 @@
             notificationsListModal = new bootstrap.Modal(document.getElementById('notificationsListModal'));
             alertDetailModalInstance = new bootstrap.Modal(document.getElementById('alertDetailModal'));
             
-            // เมื่อปิดหน้าต่าง Detail ให้ทำการอัปเดตสถานะเป็นอ่านแล้ว (STATUS = "On")
+            // เมื่อปิดหน้าต่าง Detail ให้ทำการอัปเดตสถานะเป็นอ่านแล้ว (STATUS = "CLOSED")
             document.getElementById('alertDetailModal').addEventListener('hide.bs.modal', function () {
                 if (currentDetailAlertIndex >= 0) {
                     const alertItem = myCurrentAlerts[currentDetailAlertIndex];
                     const currentStatus = String(alertItem.STATUS || '').toUpperCase();
                     
-                    // หากสถานะยังไม่อ่าน ให้ปรับเปลี่ยนตามเงื่อนไข
-                    if (currentStatus !== 'CLOSED' && currentStatus !== 'ON') {
-                        // อัปเดตสถานะในตัวแปร Local (On หมายถึงรับทราบการอ่านแล้วตามเงื่อนไข)
-                        alertItem.STATUS = "On"; 
+                    // หากสถานะยังไม่อ่าน (On คือยังไม่อ่าน) ให้ปรับเปลี่ยนเป็น CLOSED (อ่านแล้ว)
+                    if (currentStatus !== 'CLOSED') {
+                        // อัปเดตสถานะในตัวแปร Local
+                        alertItem.STATUS = "CLOSED"; 
                         
                         // อัปเดต UI รายการแจ้งเตือนและ Badge ทันทีเพื่อความลื่นไหล (Optimistic Update)
                         renderNotificationsListBody();
                         updateUnreadCounts();
                         
-                        // ส่งคำขอไปอัปเดตที่ Backend (ไม่ต้องรอ response)
+                        // ส่งคำขอไปอัปเดตที่ Backend
                         fetch(API_URL, {
                             method: 'POST',
                             body: JSON.stringify({
                                 action: 'updateAlertStatus',
-                                status: 'On',
+                                status: 'CLOSED', // อัปเดตเป็น CLOSED
                                 alertData: alertItem
                             }),
                             headers: { 'Content-Type': 'text/plain;charset=utf-8' }
-                        }).catch(e => console.error("Update status failed:", e));
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            // ดึงข้อมูลใหม่มาแสดงด้วย หลังจากส่งค่าสำเร็จ
+                            fetchDashboardData();
+                        })
+                        .catch(e => console.error("Update status failed:", e));
                     }
                     currentDetailAlertIndex = -1;
                 }
@@ -752,8 +758,8 @@
         function getUnreadAlertCount() {
             return myCurrentAlerts.filter(a => {
                 const s = String(a.STATUS || '').toUpperCase();
-                // ข้ามรายการที่ถูกมาร์คว่า CLOSED หรือ ON (อ่านแล้ว)
-                return s !== 'CLOSED' && s !== 'ON';
+                // ข้ามรายการที่ถูกมาร์คว่า CLOSED (อ่านแล้ว) ส่วน On คือยังไม่อ่าน
+                return s !== 'CLOSED';
             }).length;
         }
 
