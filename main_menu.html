@@ -403,9 +403,9 @@
                     const alertItem = myCurrentAlerts[currentViewingAlertIndex];
                     const currentStatus = String(alertItem.STATUS || '').trim();
                     
-                    if (currentStatus.toUpperCase() !== 'CLOSED' && currentStatus.toLowerCase() !== 'on') {
+                    if (currentStatus.toUpperCase() !== 'CLOSED' ) {
                         // 1. อัปเดตฝั่ง UI ทันที
-                        myCurrentAlerts[currentViewingAlertIndex].STATUS = "On";
+                        myCurrentAlerts[currentViewingAlertIndex].STATUS = "CLOSED";
                         updateNavAlertBadgeCount(); 
                         
                         // 2. ยิง API สั่งอัปเดตหลังบ้าน
