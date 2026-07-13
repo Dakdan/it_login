@@ -397,15 +397,14 @@
             if(notifModalEl) notificationsListModal = new bootstrap.Modal(notifModalEl);
             notificationDetailModal = new bootstrap.Modal(document.getElementById('notificationDetailModal'));
 
-            // ทริกเกอร์: เมื่อปิดหน้าต่าง Detail -> ให้อัปเดตสถานะเป็น "On" (อ่านแล้ว) ทันที
+            // ทริกเกอร์: เมื่อปิดหน้าต่าง Detail -> ให้อัปเดตสถานะเป็น "On" (อ่านแล้ว)
             document.getElementById('notificationDetailModal').addEventListener('hidden.bs.modal', function () {
                 if(currentViewingAlertIndex !== -1 && myCurrentAlerts[currentViewingAlertIndex]) {
                     const alertItem = myCurrentAlerts[currentViewingAlertIndex];
                     const currentStatus = String(alertItem.STATUS || '').trim();
                     
-                    // เช็คว่าสถานะยังไม่อ่านใช่หรือไม่
                     if (currentStatus.toUpperCase() !== 'CLOSED' && currentStatus.toLowerCase() !== 'on') {
-                        // 1. อัปเดตฝั่ง UI ทันที เพื่อให้จุดแดงหายไป
+                        // 1. อัปเดตฝั่ง UI ทันที
                         myCurrentAlerts[currentViewingAlertIndex].STATUS = "On";
                         updateNavAlertBadgeCount(); 
                         
@@ -423,8 +422,7 @@
                         }).catch(e => console.log("Update status error:", e));
                     }
                     currentViewingAlertIndex = -1;
-                    
-                    // หากหน้าต่าง List ยังเปิดอยู่ ให้รีเฟรชการแสดงผลเพื่ออัปเดตจุดสีแดงให้หายไป
+                    // หากหน้าต่าง List ยังเปิดอยู่ ให้รีเฟรชการแสดงผลจุดสีแดง
                     if(document.getElementById('notificationsListModal').classList.contains('show')){
                         openNotificationsModal();
                     }
@@ -564,7 +562,7 @@
                 processDashboardResult(result);
             } catch (err) {
                 console.warn("Fetch error (CORS Block in Preview):", err);
-                // ระบบ Fallback: ใส่ข้อมูลจำลองให้กดดูหน้าจอ Preview ได้ หาก API ถูกบล็อก (เช่นกำลังพรีวิว)
+                // ระบบ Fallback: ใส่ข้อมูลจำลองให้กดดูหน้าจอ Preview ได้ หาก API ถูกบล็อก
                 const mockResult = {
                     success: true,
                     alerts: [
@@ -592,7 +590,6 @@
                 const activeUser = typeof getCurrentUser === 'function' ? getCurrentUser() : null;
 
                 if (result.alerts) {
-                    // กรองเฉพาะข้อความที่เป็น Global หรือระบุ USER_ID ตรงกับที่ล็อกอินอยู่
                     myCurrentAlerts = result.alerts.filter(alertItem => {
                         const targetUserId = alertItem.USER_ID || alertItem.TARGET_USER_ID;
                         return !targetUserId || (activeUser && String(targetUserId) === String(activeUser.UserPN));
@@ -613,7 +610,6 @@
         }
 
         function updateNavAlertBadgeCount() {
-            // นับเฉพาะ STATUS ที่ไม่ใช่ CLOSED และไม่ใช่ On
             const unreadCount = myCurrentAlerts.filter(a => {
                 const st = String(a.STATUS || '').trim();
                 return st.toUpperCase() !== 'CLOSED' && st.toLowerCase() !== 'on';
@@ -630,7 +626,6 @@
             }
         }
 
-        // จัดกลุ่มข้อมูลและวาดรายการใน Modal รายการแจ้งเตือน
         function openNotificationsModal() {
             const body = document.getElementById('notificationsModalBody');
             if(!body) return; 
@@ -644,19 +639,16 @@
                         <p class="small mb-0">คุณยังไม่มีข้อความแจ้งเตือนใดๆ ในระบบ</p>
                     </div>`;
             } else {
-                // เรียงจากล่าสุดไปเก่าสุด
                 const sortedAlerts = [...myCurrentAlerts].sort((a, b) => {
                     return new Date(b.ALERT_TIME_START || 0) - new Date(a.ALERT_TIME_START || 0);
                 });
 
-                // จัดกลุ่มตามวันที่
                 const groupedAlerts = {};
                 sortedAlerts.forEach((alert) => {
                     const dateObj = alert.ALERT_TIME_START ? new Date(alert.ALERT_TIME_START) : new Date();
                     const dateStr = dateObj.toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' });
                     
                     if (!groupedAlerts[dateStr]) groupedAlerts[dateStr] = [];
-                    // เก็บ index จริงเพื่อใช้ตอนอ้างอิงให้ถูกตัว
                     const realIndex = myCurrentAlerts.findIndex(a => a === alert);
                     groupedAlerts[dateStr].push({ alert, realIndex });
                 });
@@ -673,14 +665,12 @@
                         const text = alertItem.ALERT_TEXT || '';
                         const time = alertItem.ALERT_TIME_START;
                         
-                        // เช็คสถานะการอ่าน
                         const status = String(alertItem.STATUS || '').trim();
                         const isRead = (status.toUpperCase() === 'CLOSED' || status.toLowerCase() === 'on');
 
                         const bgStyle = isRead ? 'background-color: #f8f9fa;' : 'background-color: #ffffff;';
                         const textStyle = isRead ? 'color: #888888;' : 'color: #2c2c2c; font-weight: 600;';
                         const borderStyle = isRead ? 'border-left: 4px solid #dee2e6;' : 'border-left: 4px solid var(--pink-neon);';
-                        // แสดงจุดสีแดงถ้าย้งไม่อ่าน
                         const dotIndicator = isRead ? '' : `<span class="position-absolute top-50 start-0 translate-middle p-1 bg-danger border border-light rounded-circle" style="margin-left: -2px;"></span>`;
 
                         html += `
@@ -701,12 +691,11 @@
             if(notificationsListModal) notificationsListModal.show();
         }
 
-        // ดึงข้อมูลมาแสดงในหน้า Detail
         function showNotificationDetail(index) {
             if(index < 0 || index >= myCurrentAlerts.length) return;
             
             const alertItem = myCurrentAlerts[index];
-            currentViewingAlertIndex = index; // จำไว้ว่ากำลังเปิดอ่านรายการไหน
+            currentViewingAlertIndex = index; 
             
             document.getElementById('detailAlertType').innerText = alertItem.ALERT_TYPE_ID || 'แจ้งเตือนระบบ';
             document.getElementById('detailAlertTime').innerHTML = `<i class="fa-regular fa-clock me-1"></i>${alertItem.ALERT_TIME_START ? new Date(alertItem.ALERT_TIME_START).toLocaleString('th-TH') : 'ไม่ระบุเวลา'}`;
@@ -720,7 +709,6 @@
             const container = document.getElementById('alertsContainer');
             if (!alerts || alerts.length === 0) return;
             
-            // แสดงเฉพาะที่ยังไม่อ่าน
             const unreadAlerts = alerts.filter(a => {
                 const st = String(a.STATUS || '').trim();
                 return st.toUpperCase() !== 'CLOSED' && st.toLowerCase() !== 'on';
@@ -737,7 +725,6 @@
                     </div>
                 `;
 
-                // ยิง Toast เมื่อมีเรื่องใหม่
                 const alertKey = type + "_" + text;
                 if (!sentNotificationsSet.has(alertKey)) {
                     sentNotificationsSet.add(alertKey);
