@@ -3,14 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>IT App - รพ.อุดรธานี</title>
+    <title>ระบบตรวจสอบครุภัณฑ์คอมพิวเตอร์ - รพ.อุดรธานี</title>
     <!-- Google Fonts: Kanit -->
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600&display=swap" rel="stylesheet">
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- SweetAlert2 สำหรับ Overlay/Modal -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script src="auth-check.js"></script>
     <style>
         body {
             font-family: 'Kanit', sans-serif;
@@ -76,7 +75,7 @@
 
         <header class="flex flex-col items-center justify-center mb-8 text-center">
             <div class="logo-wrapper">
-                <img src="logo002.png" alt="UDH Logo" class="w-24 h-24 object-contain mb-2 drop-shadow-sm bg-white rounded-full p-1 border border-pink-100">
+                <img src="logo02.png" alt="UDH Logo" class="w-24 h-24 object-contain mb-2 drop-shadow-sm bg-white rounded-full p-1 border border-pink-100">
             </div>
             <h1 class="text-3xl font-semibold text-pink-700">จัดการข้อมูลหน่วยงาน</h1>
             <h2 class="text-xl text-gray-600 mt-1">โรงพยาบาลอุดรธานี</h2>
@@ -186,7 +185,6 @@
         let imageBase64Data = null;
         let isEditMode = false;
 
-        // ฟังก์ชันสร้างรหัสหน่วยงานใหม่ (DEP-XXX) อัตโนมัติ
         function generateNewDepId() {
             if (!departmentsData || departmentsData.length === 0) {
                 return "DEP-1";
@@ -195,7 +193,6 @@
             let maxNum = 0;
             departmentsData.forEach(dep => {
                 if (dep.DEP_ID && String(dep.DEP_ID).toUpperCase().startsWith('DEP-')) {
-                    // ดึงเฉพาะตัวเลขที่อยู่หลัง 'DEP-'
                     const num = parseInt(String(dep.DEP_ID).substring(4), 10);
                     if (!isNaN(num) && num > maxNum) {
                         maxNum = num;
@@ -210,9 +207,14 @@
             fetchInitialData();
             checkGPSPermission();
 
-            // Event listener สำหรับระบบค้นหา
-            document.getElementById('searchInput').addEventListener('input', renderList);
-            document.getElementById('searchType').addEventListener('change', renderList);
+            const searchInput = document.getElementById('searchInput');
+            if(searchInput) {
+                searchInput.addEventListener('input', () => renderList());
+            }
+            const searchType = document.getElementById('searchType');
+            if(searchType) {
+                searchType.addEventListener('change', () => renderList());
+            }
         });
 
         function switchView(view) {
@@ -232,7 +234,6 @@
                 btnTabList.className = "px-6 py-2 rounded-lg text-sm font-medium transition-all bg-pink-100 text-pink-700 shadow-sm";
                 btnTabForm.className = "px-6 py-2 rounded-lg text-sm font-medium transition-all text-gray-500 hover:bg-gray-50";
                 
-                // Refresh list data when switching to it
                 if (departmentsData.length === 0) fetchDepartments();
                 else renderList();
             }
@@ -246,20 +247,21 @@
                     didOpen: () => { Swal.showLoading(); }
                 });
 
-                // Fetch Locations
                 const locRes = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'getLocations' }) });
                 const locResult = await locRes.json();
+                
                 if(locResult.status === 'success') {
                     locationsData = locResult.data;
                     updateLocationDropdown();
+                } else {
+                    throw new Error("LOCATION: " + (locResult.message || 'ไม่สามารถดึงข้อมูลสถานที่ได้'));
                 }
 
-                // Fetch Departments for List View
                 await fetchDepartments(false); 
                 
                 Swal.close();
             } catch (error) {
-                Swal.fire('ข้อผิดพลาด', 'เชื่อมต่อฐานข้อมูลล้มเหลว', 'error');
+                Swal.fire('เชื่อมต่อล้มเหลว', error.message || 'ไม่สามารถโหลดข้อมูลเริ่มต้นได้', 'error');
             }
         }
 
@@ -270,25 +272,27 @@
                 }
                 const depRes = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'getDepartments' }) });
                 const depResult = await depRes.json();
+                
                 if(depResult.status === 'success') {
                     departmentsData = depResult.data;
                     
-                    // อัปเดต DEP_ID อัตโนมัติในฟอร์มเพิ่มข้อมูลใหม่ เมื่อโหลดข้อมูลเสร็จ
                     if (!isEditMode) {
                         document.getElementById('DEP_ID').value = generateNewDepId();
                     }
 
-                    if(document.getElementById('listView').classList.contains('hidden') === false) {
+                    if(document.getElementById('listView') && document.getElementById('listView').classList.contains('hidden') === false) {
                         renderList();
                     }
                     if(showLoading) Swal.close();
+                } else {
+                    throw new Error("DEPARTMENT: " + (depResult.message || 'พบข้อผิดพลาดจากฐานข้อมูล'));
                 }
             } catch (error) {
-                if(showLoading) Swal.fire('ข้อผิดพลาด', 'ไม่สามารถดึงข้อมูลหน่วยงานได้', 'error');
+                if(showLoading) Swal.fire('เกิดข้อผิดพลาด', error.message || 'ไม่สามารถเชื่อมต่อ API ได้', 'error');
+                throw error;
             }
         }
 
-        // ฟังก์ชันสำหรับทำ Highlight ข้อความที่ค้นหาเจอ
         function highlightText(text, term) {
             if (!term || !text) return text;
             const regex = new RegExp(`(${term})`, "gi");
@@ -297,6 +301,7 @@
 
         function renderList() {
             const container = document.getElementById('listContainer');
+            if(!container) return;
             const searchInput = document.getElementById('searchInput');
             const searchTerm = searchInput ? searchInput.value.toLowerCase() : '';
             const searchTypeElem = document.getElementById('searchType');
@@ -317,7 +322,10 @@
             // 2. Group by Location -> Floor
             const grouped = filteredData.reduce((acc, curr) => {
                 const loc = curr.LOCATION_NAME || 'ไม่ระบุสถานที่';
-                const fl = curr.FL ? `ชั้น ${curr.FL}` : 'ไม่ระบุชั้น';
+                
+                // การนำข้อมูลมาแสดง ดึงค่าตรงๆ โดยไม่ดัดแปลง
+                const fl = curr.FL ? curr.FL : 'ไม่ระบุชั้น';
+                
                 if (!acc[loc]) acc[loc] = {};
                 if (!acc[loc][fl]) acc[loc][fl] = [];
                 acc[loc][fl].push(curr);
@@ -334,7 +342,7 @@
 
             for (const loc in grouped) {
                 const locCard = document.createElement('div');
-                locCard.className = 'bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mb-6'; // เพิ่ม mb-6 ให้เว้นระยะห่างแต่ละสถานที่
+                locCard.className = 'bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mb-6'; 
             
                 // Location Header
                 let html = `
@@ -345,7 +353,7 @@
                     <div class="p-4 space-y-4">
                 `;
 
-                // จัดเรียงชั้นจากน้อยไปมาก (Sort Floors)
+                // การจัดเรียง (Sort): ตัดอักษรออกเพื่อให้เหลือแต่ตัวเลขสำหรับเปรียบเทียบเท่านั้น โดยไม่ยุ่งกับข้อมูลที่แสดงผล
                 const sortedFloors = Object.keys(grouped[loc]).sort((a, b) => {
                     const numA = parseInt(a.replace(/\D/g, '')) || 999;
                     const numB = parseInt(b.replace(/\D/g, '')) || 999;
@@ -362,19 +370,23 @@
                 
                     // Departments within Floor
                     grouped[loc][fl].forEach(dep => {
-                        // กำหนดสถานะ ACTIVE ให้แสดง True / False
-                        const isActive = String(dep.ACTIVE).toLowerCase() !== 'false';
-                        const statusBadge = isActive 
-                            ? `<span class="bg-green-100 text-green-700 px-2 py-0.5 rounded-full text-[10px] font-semibold border border-green-200">True</span>`
-                            : `<span class="bg-red-100 text-red-700 px-2 py-0.5 rounded-full text-[10px] font-semibold border border-red-200">False</span>`;
+                        // ตรวจสอบค่าว่างสถานะ ACTIVE โดยไม่แก้ไขการแสดงผลเดิม
+                        let statusBadge = '';
+                        const activeVal = (dep.ACTIVE === undefined || dep.ACTIVE === null) ? '' : String(dep.ACTIVE).trim();
+                        
+                        if (activeVal === '') {
+                            statusBadge = `<span class="bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full text-[10px] font-semibold border border-gray-200">ไม่มีค่า</span>`;
+                        } else {
+                            const isActive = activeVal.toLowerCase() !== 'false';
+                            statusBadge = isActive 
+                                ? `<span class="bg-green-100 text-green-700 px-2 py-0.5 rounded-full text-[10px] font-semibold border border-green-200">True</span>`
+                                : `<span class="bg-red-100 text-red-700 px-2 py-0.5 rounded-full text-[10px] font-semibold border border-red-200">False</span>`;
+                        }
 
-                        // ทำ Highlight คำค้นหา
                         const dispName = searchType === 'dept' ? highlightText(dep.DEPNAME, searchTerm) : dep.DEPNAME;
                         const dispId = searchType === 'dept' ? highlightText(dep.DEP_ID, searchTerm) : dep.DEP_ID;
 
-                        // ==========================================
-                        // ส่วนที่เพิ่มใหม่: ดึงรูปภาพจาก NOTE1 มาแสดง
-                        // ==========================================
+                        // รูปภาพจาก NOTE1
                         let imageHtml = '';
                         if (dep.NOTE1) {
                             imageHtml = `<img src="https://drive.google.com/uc?id=${dep.NOTE1}" alt="รูปหน่วยงาน" class="w-full h-32 object-cover rounded-lg mb-3 border border-gray-100" onerror="this.style.display='none'">`;
@@ -382,7 +394,7 @@
 
                         html += `
                             <div onclick="showDeptDetails('${dep.DEP_ID}')" class="flex flex-col p-3 rounded-lg border border-gray-200 hover:border-pink-400 hover:shadow-md cursor-pointer transition-all bg-white group relative overflow-hidden">
-                                ${imageHtml} <!-- แสดงรูปภาพตรงนี้ -->
+                                ${imageHtml}
                                 <div class="flex justify-between items-start mb-1 gap-2">
                                     <div class="font-medium text-gray-800 group-hover:text-pink-600 pr-1 break-words leading-tight">${dispName}</div>
                                     <div class="shrink-0 mt-0.5">${statusBadge}</div>
@@ -407,8 +419,15 @@
             const dep = departmentsData.find(d => d.DEP_ID === depId);
             if (!dep) return;
 
-            const isActive = String(dep.ACTIVE).toLowerCase() !== 'false';
-            const statusText = isActive ? '<span class="text-green-600 font-medium">True</span>' : '<span class="text-red-600 font-medium">False</span>';
+            // ตรวจสอบค่าว่างสำหรับหน้าแสดงรายละเอียด (Modal)
+            let statusText = '';
+            const activeVal = (dep.ACTIVE === undefined || dep.ACTIVE === null) ? '' : String(dep.ACTIVE).trim();
+            if (activeVal === '') {
+                statusText = '<span class="text-gray-500 font-medium">ไม่มีค่า</span>';
+            } else {
+                const isActive = activeVal.toLowerCase() !== 'false';
+                statusText = isActive ? '<span class="text-green-600 font-medium">True</span>' : '<span class="text-red-600 font-medium">False</span>';
+            }
 
             let fileStatusHtml = dep.NOTE1 ? 
                 `<p class="text-green-600 mt-3 text-sm flex items-center justify-center gap-1 bg-green-50 p-2 rounded-lg border border-green-100"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg> มีไฟล์แนบในระบบแล้ว</p>` : '';
@@ -484,18 +503,20 @@
 
             const depIdInput = document.getElementById('DEP_ID');
             depIdInput.value = dep.DEP_ID;
-            depIdInput.readOnly = true;
-            depIdInput.classList.add('bg-gray-100', 'cursor-not-allowed');
-
+            
             document.getElementById('DEPNAME').value = dep.DEPNAME || '';
             document.getElementById('JOBE_SYSTEMP').value = dep.JOBE_SYSTEMP || 'IPD';
             document.getElementById('Tel').value = dep.Tel || '';
             document.getElementById('GPS').value = dep.GPS || '';
             
-            // Set ACTIVE Status
-            document.getElementById('ACTIVE').value = String(dep.ACTIVE).toLowerCase() === 'false' ? 'False' : 'True';
+            // ตรวจสอบค่าว่างสำหรับฟอร์มแก้ไข
+            const activeVal = (dep.ACTIVE === undefined || dep.ACTIVE === null) ? '' : String(dep.ACTIVE).trim();
+            if (activeVal === '') {
+                document.getElementById('ACTIVE').value = 'True'; // หากว่างให้ตั้งเป็นค่าเริ่มต้น
+            } else {
+                document.getElementById('ACTIVE').value = activeVal.toLowerCase() === 'false' ? 'False' : 'True';
+            }
 
-            // ปรับปรุงการหาและเลือก Location ให้แม่นยำขึ้น
             const locSelect = document.getElementById('LOCATION_ID');
             let foundLoc = false;
             for(let i=0; i<locSelect.options.length; i++) {
@@ -509,40 +530,26 @@
 
             document.getElementById('LOCATION_NAME').value = dep.LOCATION_NAME || '';
             
-            // สั่งจำลองการคลิกเปลี่ยน Location เพื่อดึงข้อมูลชั้น (FL) แบบทันที
             const event = new Event('change');
             locSelect.dispatchEvent(event);
             
-            // การเลือกชั้น (FL) แบบ Synchronous และดึงเฉพาะตัวเลขเทียบ
             const flSelect = document.getElementById('FL');
             let foundFl = false;
-            
-            // ดึงเฉพาะตัวเลขจากฐานข้อมูล (ป้องกันความคลาดเคลื่อน เช่น '1' กับ 'ชั้น 1')
-            const depFloorNum = String(dep.FL).replace(/\D/g, ''); 
+            const depFl = String(dep.FL).trim(); 
 
+            // ใช้การเปรียบเทียบข้อความแบบตรงๆ 100% ไม่ตัดอักษรออก
             for(let i=0; i<flSelect.options.length; i++) {
                 const optValue = String(flSelect.options[i].value).trim();
                 const optText = String(flSelect.options[i].text).trim();
-                const depFl = String(dep.FL).trim();
 
-                // แบบที่ 1: เทียบข้อความตรงๆ
                 if(optValue === depFl || optText === depFl) {
-                    flSelect.selectedIndex = i;
-                    foundFl = true;
-                    break;
-                }
-                
-                // แบบที่ 2: เทียบเฉพาะตัวเลข (Fallback)
-                const optFloorNum = String(flSelect.options[i].value).replace(/\D/g, '');
-                if (depFloorNum !== '' && optFloorNum === depFloorNum) {
                     flSelect.selectedIndex = i;
                     foundFl = true;
                     break;
                 }
             }
 
-            // แบบที่ 3: ถ้าใน Dropdown ไม่มีชั้นนี้ (เช่น ฐานข้อมูลระบุชั้นเกินกว่าที่มีในตารางสถานที่) 
-            // ให้สร้าง Option ปลอมขึ้นมาแสดงผลเพื่อไม่ให้ข้อมูลเดิมหาย
+            // ถ้าหาไม่เจอจริงๆ ก็ให้สร้าง option ตัวนั้นขึ้นมาแทน
             if(!foundFl && dep.FL) {
                 const opt = document.createElement('option');
                 opt.value = dep.FL;
@@ -551,7 +558,6 @@
                 flSelect.value = dep.FL;
             }
 
-            // Switch to form
             switchView('form');
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
@@ -560,7 +566,6 @@
             isEditMode = false;
             document.getElementById('formTitle').innerText = 'เพิ่มข้อมูลหน่วยงานใหม่';
             document.getElementById('btnCancelEdit').classList.add('hidden');
-            
             resetForm();
         }
 
@@ -574,9 +579,7 @@
         });
 
         function checkGPSPermission() {
-            if ("geolocation" in navigator) {
-                // Not showing popup immediately to avoid annoying user, just silently ready.
-            } else {
+            if (!("geolocation" in navigator)) {
                 Swal.fire('ข้อผิดพลาด', 'อุปกรณ์นี้ไม่รองรับการระบุตำแหน่ง GPS', 'error');
             }
         }
@@ -612,11 +615,11 @@
             const floorCount = selectedOption ? (parseInt(selectedOption.dataset.floorCount) || 0) : 0;
             const flSelect = document.getElementById('FL');
             
-            flSelect.innerHTML = '<option value="">-- เลือกชั้น --</option>';
+            flSelect.innerHTML = '<option value="">-- เลือก --</option>'; // เปลี่ยนเอาคำว่าชั้นออก
             for(let i = 1; i <= floorCount; i++) {
                 const opt = document.createElement('option');
-                opt.value = i;
-                opt.text = `F ${i}`;
+                opt.value = `F ${i}`;  
+                opt.text = `F ${i}`;   
                 flSelect.appendChild(opt);
             }
         });
@@ -637,7 +640,6 @@
                 imageBase64: imageBase64Data
             };
 
-            // ถ้ากำลังแก้ไข ให้ส่งข้อมูลเก่าไปด้วย (เช่น NOTE1 เพื่อไม่ให้ไฟล์ภาพเดิมหายถ้าไม่ได้อัปใหม่)
             if (isEditMode) {
                 const existingDep = departmentsData.find(d => d.DEP_ID === payload.DEP_ID);
                 if (existingDep) {
@@ -667,8 +669,8 @@
                         icon: 'success',
                         confirmButtonColor: '#ec4899'
                     }).then(() => {
-                        cancelEdit(); // กลับสู่โหมดเพิ่มข้อมูลปกติ และล้างฟอร์ม
-                        fetchDepartments(); // โหลดข้อมูลใหม่เพื่อให้อัปเดตในหน้ารายการ
+                        cancelEdit();
+                        fetchDepartments(); 
                     });
                 } else {
                     throw new Error(result.message);
@@ -680,14 +682,13 @@
 
         function resetForm() {
             if (isEditMode) {
-                cancelEdit(); // ป้องกันการล้างฟอร์มแล้วยังค้างสถานะ Edit
+                cancelEdit();
                 return;
             }
             document.getElementById('deptForm').reset();
             document.getElementById('FL').innerHTML = '<option value="">-- กรุณาเลือกสถานที่ก่อน --</option>';
             imageBase64Data = null;
             
-            // สร้างและเติมรหัส DEP_ID ใหม่อีกครั้งหลังจากล้างฟอร์ม
             document.getElementById('DEP_ID').value = generateNewDepId();
         }
     </script>
