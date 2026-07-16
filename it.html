@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <link rel="icon" type="image/png" href="https://placehold.co/100x100/ff85a2/ffffff?text=IT">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ค้นหาครุภัณฑ์ - IT UDON HOSP</title>
+    
+    <!-- Google Fonts & Bootstrap & FontAwesome CSS -->
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+
+    <!-- โหลด html5-qrcode สำหรับอ่าน QR/Barcode -->
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+    
+    <style>
+        :root {
+            --pink-soft: #fff0f5;
+            --pink-light: #ffb6c1;
+            --pink-primary: #ff85a2;
+            --pink-dark: #d63384;
+            --pink-neon: #ff1493; 
+            --white: #ffffff;
+            --gray-light: #f8f9fa;
+            --gray-text: #444444; 
+            --shadow-sm: 0 4px 10px rgba(214, 51, 132, 0.05);
+            --shadow-md: 0 8px 20px rgba(214, 51, 132, 0.1);
+        }
+
+        html, body {
+            overscroll-behavior-y: none; 
+            overscroll-behavior-x: none;
+        }
+
+        body {
+            font-family: 'Kanit', sans-serif;
+            background: linear-gradient(135deg, var(--white) 0%, var(--pink-soft) 100%);
+            min-height: 100vh;
+            color: var(--gray-text);
+            padding-bottom: 90px; 
+            position: relative;
+            overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
+        }
+
+         /* ลายน้ำแบบนูน (Embossed Watermark) - แสดงหลายบรรทัดเต็มหน้าจอ */
+        body::before {
+            /* ใช้ทริคสร้างข้อความยาว ๆ ซ้ำกันยาว ๆ หรือใช้ช่องว่างช่วย */
+            content: "UDH-IT TECHNICIAN SUPPORT ";
+            
+            position: fixed;
+            top: -50%;  /* ขยายขอบเขตให้เกินหน้าจอเผื่อตอนหมุน */
+            left: -50%;
+            width: 200vw;
+            height: 200vh;
+            
+            /* หมุนเอียงลายน้ำ */
+            transform: rotate(-30deg);
+            
+            /* สั่งให้จัดตัวอักษรขึ้นบรรทัดใหม่ซ้ำ ๆ และกระจายตัว */
+            display: flex;
+            flex-wrap: wrap;
+            align-content: space-around;
+            justify-content: space-around;
+            word-break: break-all;
+            
+            font-size: 5vw; /* ปรับขนาดเล็กลงเพื่อให้เรียงกันสวยงามเต็มหน้า */
+            font-weight: 900;
+            line-height: 2.5; /* ระยะห่างระหว่างบรรทัด */
+            z-index: -1;
+            pointer-events: none;
+            
+            /* สีกึ่งโปร่งใสที่ค่อนข้างกลืนกับพื้นหลังขาว/เทาอ่อน */
+            color: rgba(240, 240, 240, 0.4); 
+            
+            /* เทคนิคสร้างมิตินูนต่ำ (Emboss) ด้วย Shadow สองฝั่ง (แสงและเงา) */
+            text-shadow: 
+                -1px -1px 1px rgba(255, 255, 255, 0.9), /* ขอบแสงสีขาว (ด้านบนซ้าย) */
+                 1px  1px 1px rgba(0, 0, 0, 0.15);      /* ขอบเงาสีเข้ม (ด้านล่างขวา) */
+        }
+
+        /* Header */
+        .app-header {
+            background: linear-gradient(to bottom, var(--pink-neon) 0%, var(--pink-dark) 100%);
+            backdrop-filter: blur(10px);
+            padding: 14px 16px;
+            border-bottom: 6px solid #b02a6c;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            box-shadow: 0 8px 25px rgba(214, 51, 132, 0.25);
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .btn-back {
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            color: white;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+        }
+        .btn-back:hover, .btn-back:active {
+            background: rgba(255, 255, 255, 0.4);
+            color: var(--white);
+            transform: scale(0.95);
+        }
+
+        .header-title-box { flex-grow: 1; }
+        .org-title { color: #ffffff; text-shadow: 1px 1px 3px rgba(0,0,0,0.4); font-weight: 700; line-height: 1.2; font-size: 1.2rem;}
+        .org-subtitle { color: #ffb6c1; text-shadow: 1px 1px 2px rgba(0,0,0,0.3); font-weight: 400; line-height: 1.2; font-size: 0.8rem;}
+
+        /* Search Container */
+        .search-container {
+            position: sticky;
+            top: 74px;
+            z-index: 990;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 15px;
+            border-bottom: 1px solid rgba(255, 133, 162, 0.2);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .search-input-wrapper {
+            position: relative;
+            width: 100%;
+        }
+
+        .search-input {
+            width: 100%;
+            border-radius: 30px;
+            padding: 12px 45px 12px 45px;
+            border: 2px solid var(--pink-light);
+            font-size: 1rem;
+            color: var(--gray-text);
+            box-shadow: inset 0 2px 5px rgba(0,0,0,0.02);
+            transition: all 0.3s;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: var(--pink-primary);
+            box-shadow: 0 0 0 3px rgba(255, 133, 162, 0.2);
+        }
+
+        .search-icon-left {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--pink-primary);
+            font-size: 1.1rem;
+        }
+
+        .search-clear-btn {
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #ccc;
+            cursor: pointer;
+            font-size: 1.2rem;
+            display: none; 
+            background: none;
+            border: none;
+            padding: 0;
+        }
+        .search-clear-btn:hover { color: var(--pink-dark); }
+
+        /* Result List */
+        .result-count {
+            font-size: 0.85rem;
+            color: var(--gray-text);
+            margin: 15px 15px 5px;
+            font-weight: 500;
+        }
+
+        .asset-card {
+            background: var(--white);
+            border-radius: 16px;
+            border: 1px solid rgba(255, 133, 162, 0.15);
+            box-shadow: var(--shadow-sm);
+            padding: 12px;
+            margin-bottom: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .asset-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+            border-color: var(--pink-primary);
+        }
+        .asset-card:active {
+            transform: scale(0.98);
+            background-color: var(--gray-light);
+        }
+
+        .asset-img {
+            width: 70px;
+            height: 70px;
+            object-fit: cover;
+            border-radius: 12px;
+            border: 2px solid var(--pink-soft);
+            flex-shrink: 0;
+            background-color: #f0f0f0;
+        }
+
+        .asset-details { flex-grow: 1; overflow: hidden; }
+        .asset-id { font-weight: 700; color: var(--pink-dark); font-size: 1.05rem; margin-bottom: 2px; word-break: break-word; }
+        .asset-serial { font-size: 0.85rem; color: #666; margin-bottom: 4px; word-break: break-word; }
+        
+        .asset-badges {
+            display: flex;
+            gap: 5px;
+            flex-wrap: wrap;
+        }
+        
+        .badge-group { background-color: #e0f2fe; color: #0284c7; border: 1px solid #bae6fd; font-weight: 500;}
+        .badge-age { background-color: #fef08a; color: #854d0e; border: 1px solid #fde047; font-weight: 500;}
+        .badge-source { background-color: #f3f4f6; color: #4b5563; border: 1px solid #d1d5db; font-weight: 500;}
+
+        /* Highlight Search Text */
+        .highlight {
+            background-color: #bbf7d0; /* เปลี่ยนพื้นหลังเป็นสีเขียวอ่อน */
+            color: #15803d; /* เปลี่ยนตัวหนังสือเป็นสีเขียวเข้ม */
+            font-weight: bold;
+            padding: 0 2px;
+            border-radius: 3px;
+        }
+
+        /* Floating Scanner Button */
+        .fab-scanner {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 65px;
+            height: 65px;
+            background: linear-gradient(135deg, var(--pink-primary), var(--pink-neon));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.8rem;
+            box-shadow: 0 8px 25px rgba(214, 51, 132, 0.4);
+            border: 3px solid var(--white);
+            cursor: pointer;
+            z-index: 1000;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .fab-scanner:active { transform: scale(0.9); box-shadow: 0 4px 15px rgba(214, 51, 132, 0.3); }
+
+        /* Scanner Modal */
+        #reader { width: 100%; border-radius: 12px; overflow: hidden; border: 2px solid var(--pink-light); }
+        
+        /* Initial Loading Overlay */
+        #initialLoadingOverlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(255, 255, 255, 0.95);
+            z-index: 2000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: opacity 0.3s;
+        }
+
+        /* Shimmer Loading Spinner */
+        .loading-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 50px 20px;
+        }
+
+        /* จัดการ Layout สำหรับ PC ให้กึ่งกลาง และคล้าย App มือถือ */
+        .app-layout-wrapper {
+            max-width: 768px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        @media (max-width: 576px) {
+            .app-header { padding: 12px 14px; }
+            .org-title { font-size: 1.1rem; }
+            .search-container { padding: 10px 15px; }
+            .fab-scanner { bottom: 20px; right: 20px; width: 60px; height: 60px; font-size: 1.5rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Initial Loading Overlay (โหลดข้อมูลครั้งแรก) -->
+    <div id="initialLoadingOverlay">
+        <div class="spinner-border mb-3" style="width: 3rem; height: 3rem; color: var(--pink-neon);" role="status"></div>
+        <h5 class="fw-bold" style="color: var(--pink-dark);">กำลังเตรียมข้อมูล...</h5>
+        <p class="text-muted small">ดึงข้อมูลครุภัณฑ์ทั้งหมดเพื่อความรวดเร็วในการค้นหา</p>
+    </div>
+
+    <!-- HEADER -->
+    <header class="app-header" style="display: block; padding: 0;">
+        <div class="app-layout-wrapper" style="display: flex; align-items: center; gap: 15px; padding: 14px 16px;">
+            <a href="#" class="btn-back" title="กลับหน้าหลัก">
+                <i class="fa-solid fa-arrow-left"></i>
+            </a>
+            <div class="header-title-box">
+                <div class="org-title">ค้นหาข้อมูลครุภัณฑ์</div>
+                <div class="org-subtitle">ระบบบริหารจัดการครุภัณฑ์ IT</div>
+            </div>
+        </div>
+    </header>
+
+    <!-- SEARCH BAR -->
+    <div class="search-container">
+        <div class="search-input-wrapper app-layout-wrapper">
+            <i class="fa-solid fa-magnifying-glass search-icon-left"></i>
+            <input type="text" id="searchInput" class="search-input" placeholder="พิมพ์ Asset ID หรือ Serial เพื่อค้นหา..." autocomplete="off" disabled>
+            <button type="button" id="clearBtn" class="search-clear-btn">
+                <i class="fa-solid fa-circle-xmark"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- MAIN CONTENT (Result List) -->
+    <div class="container app-layout-wrapper pb-5">
+        <div class="result-count" id="resultCount">กำลังเชื่อมต่อฐานข้อมูล...</div>
+        <div id="resultsContainer">
+            <!-- Results will be injected here via JS -->
+        </div>
+
+        <!-- State: Loading -->
+        <div id="loadingState" class="loading-state d-none">
+            <div class="spinner-border text-pink-dark mb-3" style="width: 3rem; height: 3rem; color: var(--pink-dark);" role="status"></div>
+            <div class="text-pink-dark fw-bold">กำลังประมวลผล...</div>
+        </div>
+        
+        <!-- State: Not Found / Empty -->
+        <div id="emptyState" class="text-center p-5 d-none">
+            <i class="fa-solid fa-box-open text-muted" style="font-size: 4rem; opacity: 0.3;"></i>
+            <h5 class="mt-3 text-muted fw-bold" id="emptyStateTitle">ไม่พบข้อมูล</h5>
+            <p class="small text-muted mb-0" id="emptyStateMsg">ลองค้นหาด้วยรหัสครุภัณฑ์หรือสแกนใหม่อีกครั้ง</p>
+        </div>
+    </div>
+
+    <!-- FLOATING SCANNER BUTTON -->
+    <div class="fab-scanner" onclick="openScannerModal()" title="สแกน QR / Barcode">
+        <i class="fa-solid fa-qrcode"></i>
+    </div>
+
+    <!-- Modal: QR Scanner -->
+    <div class="modal fade" id="scannerModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 rounded-4 shadow-lg">
+                <div class="modal-header border-0 pb-0 justify-content-between align-items-center">
+                    <h5 class="fw-bold text-pink-dark mb-0"><i class="fa-solid fa-camera me-2"></i>สแกน QR / Barcode</h5>
+                    <button type="button" class="btn-close" onclick="closeScannerModal()" aria-label="Close"></button>
+                </div>
+                <div class="modal-body text-center p-3">
+                    <p class="small text-muted mb-2">หันกล้องตรงมาที่รหัสแผ่นสติกเกอร์เพื่อค้นหาอัตโนมัติ</p>
+                    <div id="reader"></div>
+                </div>
+                <div class="modal-footer border-0 justify-content-center">
+                    <button type="button" class="btn btn-secondary rounded-pill px-4" onclick="closeScannerModal()">ยกเลิกกล้อง</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: System Alert -->
+    <div class="modal fade" id="systemAlertModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content text-center p-4 border-0 rounded-4" style="box-shadow: var(--shadow-md);">
+                <div class="modal-body">
+                    <div class="mb-3 d-inline-flex align-items-center justify-content-center" style="width: 70px; height: 70px; background-color: #fff0f5; border-radius: 50%;">
+                        <i id="systemAlertIcon" class="fa-solid fa-circle-info text-pink-dark" style="font-size: 2.2rem;"></i>
+                    </div>
+                    <h5 class="fw-bold mb-3 text-dark" id="systemAlertTitle">แจ้งเตือนระบบ</h5>
+                    <p class="text-muted small mb-4" id="systemAlertMessage"></p>
+                    <button type="button" class="btn btn-danger rounded-pill px-4" data-bs-dismiss="modal" style="background-color: var(--pink-dark); border: none;">ตกลง</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        // URL ปลายทางเมื่อเลือกรายการหรือสแกนสำเร็จ
+        const TARGET_URL_BASE = "https://dakdan.github.io/it-technician-support/asset_detail.html?Asset_ID=";
+        // API ปลายทางที่ทำงานร่วมกับ code.gs (อัปเดตตามที่ระบุ)
+        const API_URL = "https://script.google.com/macros/s/AKfycbxLCgrDKBHjBp24Cfv4zk7aEWLnv-CCXoROVHRqyfeaULZ6gat4WQHcfH9_xBsUFgpVGQ/exec";
+
+        let html5QrcodeScanner = null;
+        let scannerModalInstance = null;
+        let systemAlertModal = null;
+        
+        // ตัวแปรเก็บข้อมูลครุภัณฑ์ทั้งหมดในฝั่ง Client
+        let allAssetsData = []; 
+
+        // Element References
+        const searchInput = document.getElementById('searchInput');
+        const clearBtn = document.getElementById('clearBtn');
+        const resultsContainer = document.getElementById('resultsContainer');
+        const resultCountLabel = document.getElementById('resultCount');
+        const emptyState = document.getElementById('emptyState');
+        const emptyStateTitle = document.getElementById('emptyStateTitle');
+        const emptyStateMsg = document.getElementById('emptyStateMsg');
+        const loadingState = document.getElementById('loadingState');
+        const initialLoadingOverlay = document.getElementById('initialLoadingOverlay');
+
+        document.addEventListener('DOMContentLoaded', () => {
+            scannerModalInstance = new bootstrap.Modal(document.getElementById('scannerModal'));
+            systemAlertModal = new bootstrap.Modal(document.getElementById('systemAlertModal'));
+            
+            // โหลดข้อมูลทั้งหมดเมื่อเข้าหน้าเว็บ
+            fetchAllData();
+
+            // Event Listener สำหรับช่องป้อนข้อความค้นหา (Real-time Client Search)
+            searchInput.addEventListener('input', function() {
+                const keyword = this.value.trim();
+                
+                if (keyword.length > 0) {
+                    clearBtn.style.display = 'block';
+                    executeLocalSearch(keyword); // ค้นหาฝั่ง Client ทันทีแบบไม่ต้องหน่วงเวลา (Debounce)
+                } else {
+                    clearBtn.style.display = 'none';
+                    resultsContainer.innerHTML = '';
+                    resultCountLabel.innerText = "ระบุข้อมูลในการค้นหาด้านบน";
+                    emptyState.classList.add('d-none');
+                }
+            });
+
+            // Event สำหรับปุ่มล้างค่า (Clear)
+            clearBtn.addEventListener('click', () => {
+                searchInput.value = '';
+                clearBtn.style.display = 'none';
+                resultsContainer.innerHTML = '';
+                resultCountLabel.innerText = "ระบุข้อมูลในการค้นหาด้านบน";
+                emptyState.classList.add('d-none');
+                searchInput.focus();
+            });
+        });
+
+        // ฟังก์ชันดึงข้อมูลทั้งหมด 1 ครั้งตอนโหลดหน้า
+        async function fetchAllData() {
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({ mode: 'getAllData' }),
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' }
+                });
+
+                if (!response.ok) throw new Error("Network Response Fail");
+                const result = await response.json();
+
+                if (result.status === "success") {
+                    allAssetsData = result.data || [];
+                    resultCountLabel.innerText = "ระบุข้อมูลในการค้นหาด้านบน (พร้อมใช้งานแล้ว)";
+                    searchInput.disabled = false; // ปลดล็อกให้พิมพ์ได้
+                    searchInput.focus();
+                } else {
+                    showSystemModal("ดึงข้อมูลล้มเหลว", result.message || "ไม่สามารถดึงข้อมูลครุภัณฑ์ได้");
+                    resultCountLabel.innerText = "เกิดข้อผิดพลาดในการโหลดข้อมูล";
+                }
+            } catch (err) {
+                console.error("Fetch Data Error:", err);
+                showSystemModal("เกิดข้อผิดพลาดในการเชื่อมต่อ", "ไม่สามารถติดต่อฐานข้อมูลโรงพยาบาลอุดรธานีได้ในขณะนี้");
+                resultCountLabel.innerText = "ระบบออฟไลน์ (โปรดตรวจสอบการเชื่อมต่ออินเทอร์เน็ตหรือ URL API)";
+            } finally {
+                // ซ่อนหน้าจอ Loading
+                initialLoadingOverlay.style.opacity = '0';
+                setTimeout(() => initialLoadingOverlay.style.display = 'none', 300);
+            }
+        }
+
+        // ค้นหาแบบ Local (Client-side) ทันที
+        function executeLocalSearch(keyword) {
+            const qStr = String(keyword).toLowerCase().trim();
+            resultsContainer.innerHTML = '';
+            emptyState.classList.add('d-none');
+
+            if (!qStr) return;
+
+            let results = [];
+            
+            // วนลูปหาในข้อมูลทั้งหมด
+            allAssetsData.forEach(item => {
+                let similarity = getSimilarityScoreLocal(item.AssetID, item.Serial, qStr);
+                
+                if (similarity > 0) {
+                    results.push({
+                        ...item, // ก๊อปปี้ object เดิมมา (ซึ่งมี Asset_Detail อยู่แล้ว)
+                        score: similarity
+                    });
+                }
+            });
+
+            // จัดเรียงความเหมือน (มากไปน้อย) และถ้าคะแนนเท่ากัน ให้เรียงลำดับตามตัวอักษร
+            results.sort((a, b) => {
+                if (b.score !== a.score) {
+                    return b.score - a.score;
+                }
+                const idA = String(a.AssetID || "");
+                const idB = String(b.AssetID || "");
+                return idA.localeCompare(idB);
+            });
+
+            if (results.length > 0) {
+                renderResults(results, keyword);
+            } else {
+                showEmptyState("ไม่พบข้อมูลที่ตรงกับการค้นหา", "โปรดตรวจสอบสะกดตัวอักษร, รหัสครุภัณฑ์ หรือ Serial ของคุณอีกครั้ง");
+            }
+        }
+
+        // ฟังก์ชันคำนวณคะแนน โดยให้ AssetID อยู่บน และตามด้วย Serial (เรียงลำดับความแม่นยำ)
+        function getSimilarityScoreLocal(assetID, serial, query) {
+            const aID = String(assetID || "").toLowerCase();
+            const ser = String(serial || "").toLowerCase();
+            
+            // กลุ่มที่ 1: ค้นเจอใน AssetID (ให้คะแนนสูง 500 - 800)
+            let assetScore = 0;
+            if (aID === query) assetScore = 800; // AssetID ตรงเป๊ะ 100%
+            else if (aID.startsWith(query)) assetScore = 700; // AssetID ตรงจากซ้ายไปขวา
+            else if (aID.endsWith(query)) assetScore = 600; // AssetID ตรงจากขวาไปซ้าย
+            else if (aID.includes(query)) assetScore = 500; // AssetID มีคำนี้แทรกอยู่
+            
+            // กลุ่มที่ 2: ค้นเจอใน Serial Number (ให้คะแนนรองลงมา 100 - 400 เพื่อให้ต่อท้าย AssetID)
+            let serialScore = 0;
+            if (ser === query) serialScore = 400; // SN ตรงเป๊ะ 100%
+            else if (ser.startsWith(query)) serialScore = 300; // SN ตรงจากซ้ายไปขวา
+            else if (ser.endsWith(query)) serialScore = 200; // SN ตรงจากขวาไปซ้าย
+            else if (ser.includes(query)) serialScore = 100; // SN มีคำนี้แทรกอยู่
+
+            // คืนค่าคะแนนสูงสุด หากเจอทั้ง AssetID และ Serial ค่าของ AssetID จะชนะเสมอ
+            return Math.max(assetScore, serialScore);
+        }
+
+        function showLoading(visible) {
+            if (visible) {
+                loadingState.classList.remove('d-none');
+                emptyState.classList.add('d-none');
+            } else {
+                loadingState.classList.add('d-none');
+            }
+        }
+
+        function showEmptyState(title, subtitle) {
+            emptyStateTitle.innerText = title;
+            emptyStateMsg.innerText = subtitle;
+            emptyState.classList.remove('d-none');
+            resultCountLabel.innerText = "ผลการค้นหาเป็นศูนย์";
+        }
+
+        // วาดผลลัพธ์ลงหน้าจอ
+        function renderResults(data, keyword) {
+            resultsContainer.innerHTML = '';
+            resultCountLabel.innerText = `พบรายการที่ตรงกันทั้งหมด ${data.length} รายการ`;
+
+            data.forEach(item => {
+                const detail = item.Asset_Detail || {};
+                const assetId = item.AssetID || detail.AssetID || "";
+                const serial = item.Serial || detail.Serial || "ไม่มี Serial";
+                const group = item.Asset_Type_Group || detail.Asset_Type_Group || "ไม่ระบุประเภท";
+                const age = detail["อายุ"] || detail["Age"] || "ไม่ระบุอายุ";
+                const sourceDb = item.Source || detail.Source || "ไม่ระบุคลัง";
+                
+                // ถอด Link รูปภาพตัวแรก หากได้ ID จาก Logs
+                let imgUrl = "https://placehold.co/100x100/e2e8f0/475569?text=No+Img";
+                if (detail.Images && detail.Images.length > 0) {
+                    const firstImgId = String(detail.Images[0]).trim();
+                    if (firstImgId !== "") {
+                        imgUrl = "https://lh3.googleusercontent.com/d/" + firstImgId;
+                    }
+                }
+
+                const card = document.createElement('div');
+                card.className = 'asset-card';
+                card.onclick = () => goToDetail(assetId);
+
+                // ทำ Highlight คำที่ค้นหา
+                const displayId = highlightText(assetId, keyword);
+                const displaySerial = highlightText(serial, keyword);
+                const displayGroup = highlightText(group, keyword);
+                const displayAge = highlightText(age, keyword);
+
+                card.innerHTML = `
+                    <img src="${imgUrl}" alt="${assetId}" class="asset-img" onerror="this.onerror=null; this.src='https://placehold.co/100x100/e2e8f0/475569?text=IT'">
+                    <div class="asset-details">
+                        <div class="asset-id">${displayId}</div>
+                        <div class="asset-serial"><i class="fa-solid fa-barcode me-1 text-secondary"></i> SN: ${displaySerial}</div>
+                        <div class="asset-badges mt-1">
+                            <span class="badge badge-group rounded-pill"><i class="fa-solid fa-tags me-1"></i>${displayGroup}</span>
+                            <span class="badge badge-age rounded-pill"><i class="fa-regular fa-clock me-1"></i>อายุ ${displayAge}</span>
+                            <span class="badge badge-source rounded-pill"><i class="fa-solid fa-database me-1"></i>${sourceDb}</span>
+                        </div>
+                    </div>
+                `;
+                resultsContainer.appendChild(card);
+            });
+        }
+
+        // ฟังก์ชันทำ Highlight ตัวหนังสือกรณีเจอคำตรง
+        function highlightText(text, keyword) {
+            if (!keyword) return text;
+            const escapedKeyword = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const regex = new RegExp(`(${escapedKeyword})`, 'gi');
+            return text.replace(regex, '<span class="highlight">$1</span>');
+        }
+
+        // นำทางไปยังระบบปลายทาง
+        function goToDetail(assetId) {
+            if (!assetId) return;
+            const finalUrl = TARGET_URL_BASE + encodeURIComponent(assetId.trim());
+            window.location.href = finalUrl;
+        }
+
+        function showSystemModal(title, message, iconClass = 'fa-solid fa-circle-info') {
+            document.getElementById('systemAlertTitle').innerText = title;
+            document.getElementById('systemAlertMessage').innerText = message;
+            document.getElementById('systemAlertIcon').className = iconClass;
+            systemAlertModal.show();
+        }
+
+        // ==============================
+        // ส่วนควบคุมระบบกล้องสแกน QR Code / Barcode (ยิง API ไปตัด String หลังบ้าน)
+        // ==============================
+        function openScannerModal() {
+            scannerModalInstance.show();
+            html5QrcodeScanner = new Html5Qrcode("reader");
+            const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+            
+            html5QrcodeScanner.start({ facingMode: "environment" }, config, onScanSuccess, onScanFailure)
+            .catch(err => {
+                console.error("Camera Start Error:", err);
+                closeScannerModal();
+                showSystemModal("ไม่สามารถเปิดกล้องได้", "กรุณาอนุญาตใช้งานสิทธิ์กล้องถ่ายรูปในบราวเซอร์หรือโทรศัพท์มือถือของคุณ", "fa-solid fa-camera-rotate text-danger");
+            });
+        }
+
+        function closeScannerModal() {
+            if (html5QrcodeScanner) {
+                html5QrcodeScanner.stop().then(() => {
+                    html5QrcodeScanner.clear();
+                    html5QrcodeScanner = null;
+                }).catch(err => console.error("Stop Camera Error", err));
+            }
+            scannerModalInstance.hide();
+        }
+
+        async function onScanSuccess(decodedText) {
+            // สั่นตอบสนองเบาๆ บนมือถือหากรองรับ
+            if ("vibrate" in navigator) navigator.vibrate(200);
+            
+            closeScannerModal();
+            
+            // แสดงสถานะระหว่างส่งสแกน
+            showLoading(true);
+            resultsContainer.innerHTML = ''; // เคลียร์ผลการค้นหาเดิม
+            resultCountLabel.innerText = "กำลังสืบค้นจากข้อมูลกล้อง...";
+
+            try {
+                // ให้ระบบส่งไปประมวลผลการตัด URL ด้วย code.gs เหมือนเดิม (mode: scan)
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        mode: 'scan',
+                        query: decodedText
+                    }),
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' }
+                });
+
+                if (!response.ok) throw new Error("Scanning Fetch Failed");
+                const result = await response.json();
+                showLoading(false);
+
+                if (result.status === "success" && result.data && result.data.AssetID) {
+                    goToDetail(result.data.AssetID);
+                } else {
+                    showSystemModal("ไม่พบข้อมูลครุภัณฑ์", "รหัสสแกน '" + decodedText + "' ไม่มีประวัติลงทะเบียนในสารสนเทศ IT UDON HOSP", "fa-solid fa-triangle-exclamation text-warning");
+                    resultCountLabel.innerText = "สแกนล้มเหลว";
+                }
+            } catch (err) {
+                showLoading(false);
+                console.error("Scanning API Error:", err);
+                showSystemModal("สแกนขัดข้อง", "ไม่สามารถติดต่อ API เพื่อค้นหาจากภาพสแกนได้ในขณะนี้", "fa-solid fa-circle-xmark text-danger");
+                resultCountLabel.innerText = "ระบบสแกนขัดข้อง";
+            }
+        }
+
+        function onScanFailure(error) {
+            // ปล่อยให้ระบบวนลูปจับภาพต่อไปจนกว่าจะเจอสัญลักษณ์ที่ตรงเงื่อนไข
+        }
+    </script>
+</body>
+</html>
