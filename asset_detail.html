@@ -472,36 +472,43 @@
         // URL สำหรับเชื่อมต่อฐานข้อมูล Google Apps Script
             const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbz_mX0O7D3PAl4uitg3V5apUECjXUZZPB4sM_B_3Ca7HnBdgJl9jPRiWgWKePrGRNdAFA/exec";
 
-            document.addEventListener('DOMContentLoaded', () => {
-                // 1. รับ ID จาก URL
-                const urlParams = new URLSearchParams(window.location.search);
-                const assetId = urlParams.get('Asset_ID') || urlParams.get('assetid') || urlParams.get('id');
+  document.addEventListener('DOMContentLoaded', () => {
+    // ดึงค่า Asset_ID จาก URL (เช่น ?Asset_ID=123)
+    const urlParams = new URLSearchParams(window.location.search);
+    const assetId = urlParams.get('Asset_ID');
 
-                if (assetId) {
-                fetchDataFromGAS(assetId);
-                } else {
-                if (typeof showError === 'function') showError("ไม่พบ Asset_ID ใน URL");
-                }
-            });
+    if (assetId) {
+      fetchDataFromGAS(assetId);
+    } else {
+      showError("ไม่พบรหัสครุภัณฑ์ใน URL กรุณาระบุ Asset_ID");
+    }
+  });
 
-            // 2. ใช้ fetch แทน google.script.run เพื่อเลี่ยง Error 'google is not defined'
-            async function fetchDataFromGAS(assetId) {
-                try {
-                const url = `${GAS_WEB_APP_URL}?action=getAsset&Asset_ID=${encodeURIComponent(assetId)}`;
-                const response = await fetch(url);
-                if (!response.ok) throw new Error("Network error");
-                
-                const result = await response.json();
-                
-                // เรียกฟังก์ชันแสดงผลหลัก
-                if (typeof renderDashboard === 'function') {
-                    renderDashboard(result);
-                }
-                } catch (err) {
-                console.error("Fetch Error:", err);
-                if (typeof showError === 'function') showError("ดึงข้อมูลไม่สำเร็จ: " + err.message);
-                }
-            }
+  async function fetchDataFromGAS(assetId) {
+    try {
+      // สร้าง URL สำหรับดึงข้อมูล
+      const targetUrl = `${GAS_WEB_APP_URL}?action=getAsset&Asset_ID=${encodeURIComponent(assetId)}`;
+      
+      // ใช้ fetch พร้อมตั้งค่าให้ตามการ Redirect ของ Google
+      const response = await fetch(targetUrl, {
+        method: 'GET',
+        redirect: 'follow' // สำคัญมาก: ช่วยแก้ปัญหา Failed to fetch จาก Google
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP Error: ${response.status}`);
+      }
+      
+      const result = await response.json();
+      
+      // ส่งข้อมูลไปวาดลงบนหน้าจอ
+      renderDashboard(result);
+      
+    } catch (err) {
+      console.error("Fetch Error:", err);
+      showError("ดึงข้อมูลไม่สำเร็จ: ไม่สามารถเชื่อมต่อกับฐานข้อมูลได้");
+    }
+  }
         // 3. นำข้อมูลสดมาแสดงผลบน Dashboard (Strictly Real Data)
         function renderDashboard(response) {
             if (!response || response.status === 'error' || !response.data) {
