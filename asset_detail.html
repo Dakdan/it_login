@@ -463,9 +463,9 @@
             let assetId = urlParams.get('AssetID') || urlParams.get('id') || urlParams.get('assetid');
 
             // ค่าเริ่มต้นเมื่อไม่มี Parameter ส่งมา (เช่นการโหลดหน้าพรีวิว)
-            if (!assetId) {
-                assetId = "2-08-003-005-67-212"; 
-            }
+          //if (!assetId) {
+              //  assetId = "2-08-003-005-67-212"; 
+         //   }
 
             // 2. ตรวจสอบการโหลดข้อมูลภายนอก / หรือรันใน Apps Script Environment
             if (typeof google !== 'undefined' && google.script) {
