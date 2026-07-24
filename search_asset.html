@@ -665,27 +665,40 @@
             if ("vibrate" in navigator) navigator.vibrate(200);
             closeScannerModal();
             
-            // 1. นำค่าที่สแกนได้มาตัดคำ (จำลอง Logic จากหลังบ้าน)
-            let input = String(decodedText).trim();
-            if (input.includes("IcmAssetDetail/")) {
-                // แยกเอาเฉพาะรหัส AssetID ที่อยู่หลัง /IcmAssetDetail/ 
-                input = input.split("IcmAssetDetail/")[1].split("/")[0];
-            } else {
-                // ตัดตัวอักษรภาษาอังกฤษ ภาษาไทย และ http/https ออก (เหลือแค่ตัวเลขและเครื่องหมายขีด -)
-                input = input.replace(/[a-zA-Zก-ฮ:/]/g, '').trim();
+            let rawText = String(decodedText).trim();
+            let extractedCode = rawText;
+        
+            // 1. ตรวจสอบว่าสแกนได้ URL หรือมีคำว่า IcmAssetDetail/ หรือไม่
+            if (rawText.includes("IcmAssetDetail/")) {
+                // แยกเอาข้อความหลัง IcmAssetDetail/ จนถึง / ตัวถัดไป
+                extractedCode = rawText.split("IcmAssetDetail/")[1].split("/")[0];
+            } else if (rawText.includes("/")) {
+                // กรณีเป็น URL หรือ Path อื่นๆ ให้ลองแยกตาม / แล้วเอา Segment ที่ยาวและคล้ายรหัสครุภัณฑ์ที่สุด
+                const segments = rawText.split("/");
+                for (let seg of segments) {
+                    // หา Segment ที่มีตัวเลขและขีด (-) รวมกันมากกว่า 5 ตัวอักษร
+                    if ((seg.match(/\d/g) || []).length >= 5) {
+                        extractedCode = seg;
+                        break;
+                    }
+                }
             }
-
-            if (!input) {
-                showSystemModal("ข้อผิดพลาด", "ไม่พบรหัสที่ถูกต้องจากภาพที่สแกน โปรดลองใหม่อีกครั้ง", "fa-solid fa-triangle-exclamation text-warning");
+        
+            // 2. ลบตัวอักษรภาษาไทย ภาษาอังกฤษ และอักขระพิเศษส่วนเกินออกจากส่วนท้ายและส่วนหน้า 
+            // เพื่อให้เหลือเฉพาะรหัสครุภัณฑ์ที่เป็นตัวเลขและเครื่องหมายขีด (-) เช่น 2-08-003-010-66-023
+            extractedCode = extractedCode.replace(/^[^0-9]+|[^0-9]+$/g, '').trim();
+        
+            if (!extractedCode) {
+                showSystemModal("ข้อผิดพลาด", "ไม่พบรหัสครุภัณฑ์ที่ถูกต้องจาก QR Code ที่สแกน", "fa-solid fa-triangle-exclamation text-warning");
                 return;
             }
-
-            // 2. นำรหัสที่ตัดได้ไปใส่ในช่องค้นหา
-            searchInput.value = input;
+        
+            // 3. นำรหัสที่ตัดและทำความสะอาดแล้วไปวางในช่องค้นหา
+            searchInput.value = extractedCode;
             clearBtn.style.display = 'block';
-
-            // 3. สั่งค้นหาฝั่ง Client ทันที
-            executeLocalSearch(input);
+        
+            // 4. สั่งให้ระบบค้นหาทำงานทันที
+            executeLocalSearch(extractedCode);
         }
 
         function onScanFailure(error) {
